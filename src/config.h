@@ -42,6 +42,9 @@ static const uint8_t dischargeMosfetPins[] =    {24,27,30,33,36,39,42,45};
 
 
 
+#define NAK 0x01
+#define ACK 0x02
+
 /*
 eeprom layout
 first startup[0]

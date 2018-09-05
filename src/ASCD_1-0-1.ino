@@ -506,6 +506,14 @@ void recvWithEndMarker() {
  }
  }
 }
+
+
+void configResponce(uint8_t type)
+{
+  if(type==NAK) Serial.println("NAK");
+  if(type==ACK) Serial.println("ACK");
+  if(type!=ACK && type!=NAK) Serial.println("ERR");
+}
 void serialcheck()
 {
   //Serial.println("serialcheck called");
@@ -518,232 +526,132 @@ void serialcheck()
     float floatvalue;
 
     char * strtokIndx; // this is used by strtok() as an index
-    //char receivedChars = Serial.readString();
-    //Serial.println(receivedChars);
+
 
   strtokIndx = strtok(receivedChars,"=");      // get the first part - the string
   strcpy(command, strtokIndx); // copy it to messageFromPC
   strtokIndx = strtok(NULL, "="); // this continues where the previous call left off
-  //Serial.print("Command= ");
-  //Serial.println(command);
-  //Serial.println(">");
+
 
 
     if(strcmp(command,"milliamps")==0)
     {
-      //strtokIndx = strtok(NULL, "="); // this continues where the previous call left off
       intvalue = atoi(strtokIndx);     // convert this part to an integer
       loadedSettings.lowMilliamps = intvalue;
-      //Serial.print("set lowMilliamps: ");
-
-      //loadedSettings.lowMilliamps = 500;
-      //Serial.println(loadedSettings.lowMilliamps,DEC);
-
       EEPROM.put(1,loadedSettings);
+      configResponce(ACK);
     }
 
     else if(strcmp(command,"shunt")==0)
     {
-      //strtokIndx = strtok(NULL, "=");
       floatvalue = atof(strtokIndx);     // convert this part to a float
       loadedSettings.shuntResistor = floatvalue;
-      //Serial.print("set shuntResistor: ");
-
-      //loadedSettings.lowMilliamps = 500;
-      //Serial.println(loadedSettings.shuntResistor,2);
-
       EEPROM.put(1,loadedSettings);
-    }else if(strcmp(command,"refv")==0)
+      configResponce(ACK);
+    }
+    else if(strcmp(command,"refv")==0)
     {
-      //strtokIndx = strtok(NULL, "=");
       floatvalue = atof(strtokIndx);     // convert this part to a float
       loadedSettings.referenceVoltage = floatvalue;
-      //Serial.print("set referenceVoltage: ");
-
-      //loadedSettings.lowMilliamps = 500;
-      //Serial.println(loadedSettings.referenceVoltage,2);
-
       EEPROM.put(1,loadedSettings);
+      configResponce(ACK);
     }
     else if(strcmp(command,"cutv")==0)
     {
-      //strtokIndx = strtok(NULL, "=");
       floatvalue = atof(strtokIndx);     // convert this part to a float
       loadedSettings.defaultBatteryCutOffVoltage = floatvalue;
-      //Serial.print("set defaultBatteryCutOffVoltage: ");
-
-      //loadedSettings.lowMilliamps = 500;
-      //Serial.println(loadedSettings.defaultBatteryCutOffVoltage,2);
-
       EEPROM.put(1,loadedSettings);
-    }else if(strcmp(command,"timeout")==0)
+      configResponce(ACK);
+    }
+    else if(strcmp(command,"timeout")==0)
     {
-      //strtokIndx = strtok(NULL, "=");
       intvalue = atoi(strtokIndx);     // convert this part to a float
       loadedSettings.restTimeMinutes = intvalue;
-      //Serial.print("set restTimeMinutes: ");
-
-      //loadedSettings.lowMilliamps = 500;
-      //Serial.println(loadedSettings.restTimeMinutes);
-
       EEPROM.put(1,loadedSettings);
+      configResponce(ACK);
     }
     else if(strcmp(command,"milliohms")==0)
     {
-      //strtokIndx = strtok(NULL, "=");
       intvalue = atoi(strtokIndx);     // convert this part to a float
       loadedSettings.highMilliOhms = intvalue;
-      //Serial.print("set highMilliOhms: ");
-
-      //loadedSettings.lowMilliamps = 500;
-      //Serial.println(loadedSettings.highMilliOhms);
-
       EEPROM.put(1,loadedSettings);
-    }else if(strcmp(command,"ohmoffset")==0)
+      configResponce(ACK);
+    }
+    else if(strcmp(command,"ohmoffset")==0)
     {
-      //strtokIndx = strtok(NULL, "=");
       intvalue = atoi(strtokIndx);     // convert this part to a float
       loadedSettings.offsetMilliOhms = intvalue;
-      //Serial.print("set offsetMilliOhms: ");
-
-      //loadedSettings.lowMilliamps = 500;
-      //Serial.println(loadedSettings.offsetMilliOhms,2);
-
       EEPROM.put(1,loadedSettings);
+      configResponce(ACK);
     }
     else if(strcmp(command,"chrgtimeout")==0)
     {
-      //strtokIndx = strtok(NULL, "=");
       floatvalue = atof(strtokIndx);     // convert this part to a float
       loadedSettings.chargingTimeout = floatvalue;
-      //Serial.print("set chargingTimeout: ");
-
-      //loadedSettings.lowMilliamps = 500;
-      //Serial.println(loadedSettings.chargingTimeout);
-
       EEPROM.put(1,loadedSettings);
+      configResponce(ACK);
     }
     else if(strcmp(command,"tempthreshold")==0)
     {
-      //strtokIndx = strtok(NULL, "=");
       intvalue = atoi(strtokIndx);     // convert this part to a float
       loadedSettings.tempThreshold = intvalue;
-      //Serial.print("set tempThreshold: ");
-
-      //loadedSettings.lowMilliamps = 500;
-      //Serial.println(loadedSettings.tempThreshold);
-
       EEPROM.put(1,loadedSettings);
+      configResponce(ACK);
     }
     else if(strcmp(command,"tempmax")==0)
     {
-      //strtokIndx = strtok(NULL, "=");
       intvalue = atoi(strtokIndx);     // convert this part to a float
       loadedSettings.tempMaxThreshold = intvalue;
-      //Serial.print("set tempMaxThreshold: ");
-
-      //loadedSettings.lowMilliamps = 500;
-      //Serial.println(loadedSettings.tempMaxThreshold);
-
       EEPROM.put(1,loadedSettings);
+      configResponce(ACK);
     }
     else if(strcmp(command,"server")==0)
     {
-      //strtokIndx = strtok(NULL, "=");
-      //char charvalue[40] {0};
-      //strcpy(charvalue, strtokIndx); // copy it to messageFromPC
-
-      //floatvalue = atof(strtokIndx);     // convert this part to a float
       strcpy( loadedSettings.server,strtokIndx);
-      //Serial.print("set server: ");
-
-      //loadedSettings.lowMilliamps = 500;
-      //Serial.println(loadedSettings.server);
-
       EEPROM.put(1,loadedSettings);
+      configResponce(ACK);
     }
     else if(strcmp(command,"userhash")==0)
     {
-      //strtokIndx = strtok(NULL, "=");
-      //char charvalue[40] {0};
-      //strcpy(charvalue, strtokIndx); // copy it to messageFromPC
-
-      //floatvalue = atof(strtokIndx);     // convert this part to a float
       strcpy( loadedSettings.userHash,strtokIndx);
-      //Serial.print("set userHash: ");
-
-      //loadedSettings.lowMilliamps = 500;
-      //Serial.println(loadedSettings.userHash);
-
       EEPROM.put(1,loadedSettings);
+      configResponce(ACK);
     }
     else if(strcmp(command,"cduintid")==0)
     {
-      //strtokIndx = strtok(NULL, "=");
-      //char charvalue[40] {0};
-      //strcpy(charvalue, strtokIndx); // copy it to messageFromPC
-
       intvalue = atoi(strtokIndx);     // convert this part to a float
-      //strcpy( loadedSettings.server,strtokIndx);
       loadedSettings.CDUnitID = intvalue;
-      //Serial.print("set CDUnitID: ");
-
-      //loadedSettings.lowMilliamps = 500;
-      //Serial.println(loadedSettings.CDUnitID);
-
       EEPROM.put(1,loadedSettings);
+      configResponce(ACK);
     }
     else if(strcmp(command,"ssid")==0)
     {
-      //strtokIndx = strtok(NULL, "=");
-      //char charvalue[40] {0};
-      //strcpy(charvalue, strtokIndx); // copy it to messageFromPC
-
-      //floatvalue = atof(strtokIndx);     // convert this part to a float
       strcpy( loadedSettings.ssid,strtokIndx);
-      //Serial.println(st)
-      //Serial.print("set SSID: ");
-
-      //loadedSettings.lowMilliamps = 500;
-      //Serial.println(loadedSettings.ssid);
-
       EEPROM.put(1,loadedSettings);
+      configResponce(ACK);
     }
     else if(strcmp(command,"pass")==0)
     {
-      //strtokIndx = strtok(NULL, "=");
-      //char charvalue[40] {0};
-      //strcpy(charvalue, strtokIndx); // copy it to messageFromPC
-
-      //floatvalue = atof(strtokIndx);     // convert this part to a float
       strcpy( loadedSettings.pass,strtokIndx);
-      //Serial.print("set pass: ");
-
-      //loadedSettings.lowMilliamps = 500;
-      //Serial.println(loadedSettings.pass);
-
       EEPROM.put(1,loadedSettings);
+      configResponce(ACK);
     }
     else if(strcmp(command,"reset")==0)
     {
-      //strtokIndx = strtok(NULL, "=");
-      //char charvalue[40] {0};
-      //strcpy(charvalue, strtokIndx); // copy it to messageFromPC
-
-      floatvalue = atoi(strtokIndx);     // convert this part to a float
-      //strcpy( loadedSettings.server,strtokIndx);
+      configResponce(ACK);
       EEPROM.write(0,0);
-      //Serial.println("settings: default(reboot) ");
-
-      //loadedSettings.lowMilliamps = 500;
-      //Serial.println(loadedSettings.server);
-
-      //EEPROM.put(1,loadedSettings);
     }
     else if(strcmp(command,"read")==0)
     {
+      configResponce(ACK);
       readconfig();
-      //use this to call the eeprom settings read.
+
+
+    }
+    else
+    {
+      //NAK responce
+      configResponce(NAK);
     }
     newData = false;
 
