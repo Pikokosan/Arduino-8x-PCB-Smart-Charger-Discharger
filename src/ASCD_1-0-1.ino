@@ -543,7 +543,7 @@ void serialcheck()
 
       EEPROM.put(1,loadedSettings);
     }
-    else if(strcmp(command,"defvcut")==0)
+    else if(strcmp(command,"cutv")==0)
     {
       //strtokIndx = strtok(NULL, "=");
       floatvalue = atof(strtokIndx);     // convert this part to a float
