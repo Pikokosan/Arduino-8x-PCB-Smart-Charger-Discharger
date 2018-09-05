@@ -31,9 +31,17 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <SPI.h>
-#include <Ethernet.h>
-#include <hidboot.h> //Barcode Scanner
-#include <usbhub.h> //Barcode Scanner
+#if defined(WIRELESS_ENABLE) && !defined(ETHERNET_ENABLE)
+  #include <WiFiEsp.h>
+#endif
+#if !defined(WIRELESS_ENABLE) && defined(ETHERNET_ENABLE)
+  #include <Ethernet.h>
+#endif
+
+#if defined(USB_ENABLE)
+  #include <hidboot.h> //Barcode Scanner
+  #include <usbhub.h> //Barcode Scanner
+#endif
 #ifdef dobogusinclude //Barcode Scanner
 #include <spi4teensy3.h> //Barcode Scanner
 #endif
@@ -41,6 +49,8 @@
 //Objects
 LiquidCrystal_I2C lcd(0x27,20,4); // set the LCD address to 0x27 for a 20 chars and 4 line display
 Timer timerObject;
+
+void(* resetFunc) (void) = 0;//declare reset function at address 0
 
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(ONE_WIRE_BUS);
@@ -61,21 +71,20 @@ struct EEPROMConfig {
   char server[40];
   char userHash[10];
   uint8_t CDUnitID;
+  char ssid[10];
+  char pass[16];
 };
+
+
+//Serial stuff
+const byte numChars = 32;
+char receivedChars[numChars]; // an array to store the received data
+
+boolean newData = false;
 
 //--------------------------------------------------------------------------
 // Constant Variables
-const byte modules = 8; // Number of Modules
-float shuntResistor = 3.3;//EEPROM.read[1]; // In Ohms - Shunt resistor resistance
-float referenceVoltage = 4.95; // 5V Output of Arduino
-const float defaultBatteryCutOffVoltage = 2.8; // Voltage that the discharge stops ---> Will be replaced with Get DB Discharge Cutoff
-const byte restTimeMinutes = 1; // The time in Minutes to rest the battery after charge. 0-59 are valid
-const int lowMilliamps = 1000; //  This is the value of Milli Amps that is considered low and does not get recharged because it is considered faulty
-const int highMilliOhms = 500; //  This is the value of Milli Ohms that is considered high and the battery is considered faulty
-const int offsetMilliOhms = 0; // Offset calibration for MilliOhms
-const byte chargingTimeout = 8; // The timeout in Hours for charging
-const byte tempThreshold = 7; // Warning Threshold in degrees above initial Temperature
-const byte tempMaxThreshold = 10; //Maximum Threshold in degrees above initial Temperature - Considered Faulty
+//const byte modules = 8; // Number of Modules
 //const byte dischargerID[8] = {1,2,3,4,5,6,7,8}; // Discharger ID's from PHP Database Table Chargers ------> Change to Modules Array ID + 1
 // You need to run the Dallas get temp sensors sketch to get your DS serails
 DeviceAddress tempSensorSerial[9]= {
@@ -90,9 +99,6 @@ DeviceAddress tempSensorSerial[9]= {
   };
 // Add in an ambient air tempSensor ---->> This will be ID 9 (8)
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED }; // If you have multiple devices you may need to change this per CD Unit (MAC conflicts on same network???)
-char server[] = "submit.vortexit.co.nz";    // Server to connect - Add your server here
-char userHash[] = "";    // Database Hash - this is unique per user - Get this from Charger / Discharger Menu -> View
-byte CDUnitID = 1;    // CDUnitID this is the Units ID - this is unique per user - Get this from Charger / Discharger Menu -> View -> Select your Charger / Discharger
 
 EEPROMConfig loadedSettings {
   3.3f,// In Ohms - Shunt resistor resistance
@@ -107,14 +113,20 @@ EEPROMConfig loadedSettings {
   10,//Maximum Threshold in degrees above initial Temperature - Considered Faulty
   "submit.vortexit.co.nz",// Server to connect - Add your server here
   "",// Database Hash - this is unique per user - Get this from Charger / Discharger Menu -> View
-  1// CDUnitID this is the Units ID - this is unique per user - Get this from Charger / Discharger Menu -> View -> Select your Charger / Discharger
+  1,// CDUnitID this is the Units ID - this is unique per user - Get this from Charger / Discharger Menu -> View -> Select your Charger / Discharger
+  "yournetwork",//Your wireless networks ssid
+  "yourpassword"//Your wireless networks password
+
 };
 
 
 Encoder myEnc(7,6); //Encoder knob setup
-
-IPAddress ip(192, 168, 0, 177); // Set the static IP address to use if the DHCP fails to get assign
-EthernetClient client;
+#if defined(ETHERNET_ENABLE)
+  EthernetClient client;
+#endif
+#if defined(WIRELESS_ENABLE)
+WiFiEspClient client;
+#endif
 
 //--------------------------------------------------------------------------
 // Initialization
@@ -194,6 +206,7 @@ byte batteryNotDetectedCount[modules];
 byte mosfetSwitchCount[modules];
 
 // USB Host Shield - Barcode Scanner
+#if defined(USB_ENABLE)
 class KbdRptParser : public KeyboardReportParser
 {
 
@@ -205,7 +218,7 @@ protected:
 KbdRptParser Prs;
 USB     Usb;
 HIDBoot<USB_HID_PROTOCOL_KEYBOARD>    HidKeyboard(&Usb);
-
+#endif
 
 //--------------------------------------------------------------------------
 
@@ -240,11 +253,16 @@ void setup()
       10,//Maximum Threshold in degrees above initial Temperature - Considered Faulty
       "submit.vortexit.co.nz",// Server to connect - Add your server here
       "",// Database Hash - this is unique per user - Get this from Charger / Discharger Menu -> View
-      1// CDUnitID this is the Units ID - this is unique per user - Get this from Charger / Discharger Menu -> View -> Select your Charger / Discharger
+      1,// CDUnitID this is the Units ID - this is unique per user - Get this from Charger / Discharger Menu -> View -> Select your Charger / Discharger
+      "yournetwork",//Your wireless networks ssid
+      "yourpassword"//Your wireless networks password
     };
     //write the default settings to the eeprom
 
     sprintf(lcdStartup4, "%-20s", "Restart tester");
+    #if defined(SERIAL_DEBUG)
+      Serial.println(lcdStartup4);
+    #endif
     EEPROM.put(1,defaultsettings);
 
   }else{
@@ -263,62 +281,154 @@ void setup()
     digitalWrite(chargeMosfetPins[i], LOW);
     digitalWrite(dischargeMosfetPins[i], LOW);
   }
+  #if defined(SERIAL_DEBUG)
+  Serial.begin(115200);
 
-  //Serial.begin(115200);
-  //Serial.println("Started");
+  Serial.println("Started");
+  Serial.print("startup byte= ");
+  Serial.println(EEPROM.read(0));
+  Serial.print("loadedSettings.shuntResistor= ");
+  Serial.println(loadedSettings.shuntResistor);
+  Serial.print("loadedSettings.referenceVoltage= ");
+  Serial.println(loadedSettings.referenceVoltage);
+  Serial.print("loadedSettings.defaultBatteryCutOffVoltage= " );
+  Serial.println(loadedSettings.defaultBatteryCutOffVoltage);
+  Serial.print("loadedSettings.lowMilliamps= ");
+  Serial.println(loadedSettings.lowMilliamps);
+  Serial.print("loadedSettings.ssid= ");
+  Serial.println(loadedSettings.ssid);
+
+
+  #endif
   //Startup Screen
+
   lcd.init();
   lcd.clear();
   lcd.backlight();// Turn on backlight
   sprintf(lcdStartup0, "%-20s", "Smart Charger 1.0.1");
+  #if defined(SERIAL_DEBUG)
+    Serial.println(lcdStartup0);
+  #endif
   lcd.setCursor(0,0);
   lcd.print(lcdStartup0);
   sprintf(lcdStartup1, "%-20s", "Initializing TP4056");
+  #if defined(SERIAL_DEBUG)
+    Serial.println(lcdStartup1);
+  #endif
   lcd.setCursor(0,1);
   lcd.print(lcdStartup1);
   mosfetSwitchAll();
-  sprintf(lcdStartup1, "%-20s", "Initializing W5500..");
-  lcd.setCursor(0,1);
-  lcd.print(lcdStartup1);
-  if (Ethernet.begin(mac) == 0) {
-    // Try to congifure using a static IP address instead of DHCP:
-    Ethernet.begin(mac, ip);
+  #if defined(ETHERNET_ENABLE)
+    sprintf(lcdStartup1, "%-20s", "Initializing W5500..");
+  #endif
+  #if defined(WIRELESS_ENABLE)
+    sprintf(lcdStartup1,"%-20s", "Initializing ESP-01..");
+  #endif
+    #if defined(SERIAL_DEBUG)
+      Serial.println(lcdStartup1);
+    #endif
+
+    lcd.setCursor(0,1);
+    lcd.print(lcdStartup1);
+  #if defined(ETHERNET_ENABLE)
+    if (Ethernet.begin(mac) == 0) {
+      // Try to congifure using a static IP address instead of DHCP:
+      #if defined(SERIAL_DEBUG)
+        Serial.println("Ethernet connection set to static ");
+        //Serial.println(Ethernet.begin(mac),DEC);
+      #endif
+      Ethernet.begin(mac, ip);
+    }
+    char ethIP[16];
+    IPAddress ethIp = Ethernet.localIP();
+    sprintf(lcdStartup1, "IP:%d.%d.%d.%d%-20s", ethIp[0], ethIp[1], ethIp[2], ethIp[3], " ");
+    lcd.setCursor(0,1);
+    lcd.print(lcdStartup1);
+  #endif
+
+  #if defined(WIRELESS_ENABLE)
+    //Initializing ESP-01
+    Serial1.begin(9600);
+    WiFi.init(&Serial1);
+    //attempt to connect to WiFi
+    if(WiFi.status() == WL_NO_SHIELD){
+      sprintf(lcdStartup1,"%-20s", "ESP-01 not found");
+      #if defined(SERIAL_DEBUG)
+        Serial.println(lcdStartup1);
+      #endif
+      status = WL_NO_SHIELD;
+      lcd.setCursor(0,2);
+      lcd.print(lcdStartup1);
+
+      //uncomment so it hangs the system if it fails to find the ESP-01
+      //while(true);
+    }
+    // attempt to connect to WiFi network
+    /*
+  while ( status != WL_CONNECTED) {
+    Serial.print("Attempting to connect to WPA SSID: ");
+    Serial.println(loadedSettings.ssid);
+    // Connect to WPA/WPA2 network
+    status = WiFi.begin(loadedSettings.ssid, loadedSettings.pass);
   }
-  char ethIP[16];
-  IPAddress ethIp = Ethernet.localIP();
-  sprintf(lcdStartup1, "IP:%d.%d.%d.%d%-20s", ethIp[0], ethIp[1], ethIp[2], ethIp[3], " ");
-  lcd.setCursor(0,1);
-  lcd.print(lcdStartup1);
-  float checkConnectionResult = checkConnection();
-  if(checkConnectionResult == 0)
-  {
-    sprintf(lcdStartup2, "%-20s", "DB/WEB: Connected");
-  } else if (checkConnectionResult == 2) {
-    sprintf(lcdStartup2, "%-20s", "DB/WEB: Time Out");
-  } else {
-    sprintf(lcdStartup2, "%-20s", "DB/WEB: Failed");
-  }
-  lcd.setCursor(0,2);
-  lcd.print(lcdStartup2);
+  */
+
+
+    #endif
+
+
+  #if defined(ETHERNET_ENABLE)
+    float checkConnectionResult = checkConnection();
+    if(checkConnectionResult == 0){
+      sprintf(lcdStartup2, "%-20s", "DB/WEB: Connected");
+    } else if (checkConnectionResult == 2) {
+      sprintf(lcdStartup2, "%-20s", "DB/WEB: Time Out");
+    } else {
+      sprintf(lcdStartup2, "%-20s", "DB/WEB: Failed");
+    }
+    lcd.setCursor(0,2);
+    lcd.print(lcdStartup2);
+    #if defined(SERIAL_DEBUG)
+      Serial.println(lcdStartup2);
+    #endif
+  #endif
+
+
+
   lcd.setCursor(0,3);
+  #if defined(USB_ENABLE)
   sprintf(lcdStartup3, "%-20s", Usb.Init() == -1 ? "USB: Did not start" : "USB: Started");
+
   lcd.setCursor(0,3);
   lcd.print(lcdStartup3);
+  #if defined(SERIAL_DEBUG)
+    Serial.println(lcdStartup3);
+  #endif
   HidKeyboard.SetReportParser(0, &Prs);
+  #endif
   delay(2000);
   // Timer Triggers
   timerObject.every(2, rotaryEncoder);
+  timerObject.every(8, serialcheck);
   timerObject.every(1000, cycleStateValues);
   timerObject.every(1000, cycleStateLCD);
+  #if defined(ETHERNET_ENABLE) || defined(WIRELESS_ENABLE)
   timerObject.every(60000, cycleStatePostWebData);
   timerObject.every(5000, cycleStateGetWebData);
+  #endif
   lcd.clear();
 }
 
 void loop()
 {
   //Nothing else should be in this loop. Use timerObject and Usb.Task only .
+
+    //Serial.println("byte available");
+    //String test = Serial.readString();
+
+#if defined(USB_ENABLE)
   Usb.Task(); //Barcode Scanner
+#endif
   timerObject.update();
 }
 
@@ -335,7 +445,7 @@ void processBarcode(int keyInput)
     barcodeStringCompleted = false;
   }
 }
-
+#if defined(USB_ENABLE)
 void KbdRptParser::OnKeyDown(uint8_t mod, uint8_t key)
 {
   //Barcode Scanner
@@ -348,7 +458,274 @@ void KbdRptParser::OnKeyPressed(uint8_t key)
   //Barcode Scanner
   processBarcode(key);
 };
+#endif
 
+//************************serial configuration functions*********************
+void recvWithEndMarker() {
+ static byte ndx = 0;
+ char endMarker = '\n';
+ char rc;
+
+ // if (Serial.available() > 0) {
+           while (Serial.available() > 0 && newData == false) {
+ rc = Serial.read();
+
+ if (rc != endMarker) {
+ receivedChars[ndx] = rc;
+ ndx++;
+ if (ndx >= numChars) {
+ ndx = numChars - 1;
+ }
+ }
+ else {
+ receivedChars[ndx] = '\0'; // terminate the string
+ ndx = 0;
+ newData = true;
+ }
+ }
+}
+void serialcheck()
+{
+  //Serial.println("serialcheck called");
+  recvWithEndMarker();
+
+  if (newData == true)
+  {
+    char command[32] {0};
+    int intvalue;
+    float floatvalue;
+
+    char * strtokIndx; // this is used by strtok() as an index
+    //char receivedChars = Serial.readString();
+    //Serial.println(receivedChars);
+
+  strtokIndx = strtok(receivedChars,"=");      // get the first part - the string
+  strcpy(command, strtokIndx); // copy it to messageFromPC
+  strtokIndx = strtok(NULL, "="); // this continues where the previous call left off
+  Serial.print("Command= ");
+  Serial.println(command);
+  //Serial.println(">");
+
+
+    if(strcmp(command,"milliamps")==0)
+    {
+      //strtokIndx = strtok(NULL, "="); // this continues where the previous call left off
+      intvalue = atoi(strtokIndx);     // convert this part to an integer
+      loadedSettings.lowMilliamps = intvalue;
+      Serial.print("set lowMilliamps: ");
+
+      //loadedSettings.lowMilliamps = 500;
+      Serial.println(loadedSettings.lowMilliamps,DEC);
+
+      EEPROM.put(1,loadedSettings);
+    }
+
+    else if(strcmp(command,"shunt")==0)
+    {
+      //strtokIndx = strtok(NULL, "=");
+      floatvalue = atof(strtokIndx);     // convert this part to a float
+      loadedSettings.shuntResistor = floatvalue;
+      Serial.print("set shuntResistor: ");
+
+      //loadedSettings.lowMilliamps = 500;
+      Serial.println(loadedSettings.shuntResistor,2);
+
+      EEPROM.put(1,loadedSettings);
+    }else if(strcmp(command,"refv")==0)
+    {
+      //strtokIndx = strtok(NULL, "=");
+      floatvalue = atof(strtokIndx);     // convert this part to a float
+      loadedSettings.referenceVoltage = floatvalue;
+      Serial.print("set referenceVoltage: ");
+
+      //loadedSettings.lowMilliamps = 500;
+      Serial.println(loadedSettings.referenceVoltage,2);
+
+      EEPROM.put(1,loadedSettings);
+    }
+    else if(strcmp(command,"defvcut")==0)
+    {
+      //strtokIndx = strtok(NULL, "=");
+      floatvalue = atof(strtokIndx);     // convert this part to a float
+      loadedSettings.defaultBatteryCutOffVoltage = floatvalue;
+      Serial.print("set defaultBatteryCutOffVoltage: ");
+
+      //loadedSettings.lowMilliamps = 500;
+      Serial.println(loadedSettings.defaultBatteryCutOffVoltage,2);
+
+      EEPROM.put(1,loadedSettings);
+    }else if(strcmp(command,"timeout")==0)
+    {
+      //strtokIndx = strtok(NULL, "=");
+      intvalue = atoi(strtokIndx);     // convert this part to a float
+      loadedSettings.restTimeMinutes = intvalue;
+      Serial.print("set restTimeMinutes: ");
+
+      //loadedSettings.lowMilliamps = 500;
+      Serial.println(loadedSettings.restTimeMinutes);
+
+      EEPROM.put(1,loadedSettings);
+    }
+    else if(strcmp(command,"milliohms")==0)
+    {
+      //strtokIndx = strtok(NULL, "=");
+      intvalue = atoi(strtokIndx);     // convert this part to a float
+      loadedSettings.highMilliOhms = intvalue;
+      Serial.print("set highMilliOhms: ");
+
+      //loadedSettings.lowMilliamps = 500;
+      Serial.println(loadedSettings.highMilliOhms);
+
+      EEPROM.put(1,loadedSettings);
+    }else if(strcmp(command,"ohmoffset")==0)
+    {
+      //strtokIndx = strtok(NULL, "=");
+      intvalue = atoi(strtokIndx);     // convert this part to a float
+      loadedSettings.offsetMilliOhms = intvalue;
+      Serial.print("set offsetMilliOhms: ");
+
+      //loadedSettings.lowMilliamps = 500;
+      Serial.println(loadedSettings.offsetMilliOhms,2);
+
+      EEPROM.put(1,loadedSettings);
+    }
+    else if(strcmp(command,"chrgtimeout")==0)
+    {
+      //strtokIndx = strtok(NULL, "=");
+      floatvalue = atof(strtokIndx);     // convert this part to a float
+      loadedSettings.chargingTimeout = floatvalue;
+      Serial.print("set chargingTimeout: ");
+
+      //loadedSettings.lowMilliamps = 500;
+      Serial.println(loadedSettings.chargingTimeout);
+
+      EEPROM.put(1,loadedSettings);
+    }
+    else if(strcmp(command,"tempthreshold")==0)
+    {
+      //strtokIndx = strtok(NULL, "=");
+      intvalue = atoi(strtokIndx);     // convert this part to a float
+      loadedSettings.tempThreshold = intvalue;
+      Serial.print("set tempThreshold: ");
+
+      //loadedSettings.lowMilliamps = 500;
+      Serial.println(loadedSettings.tempThreshold);
+
+      EEPROM.put(1,loadedSettings);
+    }
+    else if(strcmp(command,"tempmax")==0)
+    {
+      //strtokIndx = strtok(NULL, "=");
+      intvalue = atoi(strtokIndx);     // convert this part to a float
+      loadedSettings.tempMaxThreshold = intvalue;
+      Serial.print("set tempMaxThreshold: ");
+
+      //loadedSettings.lowMilliamps = 500;
+      Serial.println(loadedSettings.tempMaxThreshold);
+
+      EEPROM.put(1,loadedSettings);
+    }
+    else if(strcmp(command,"server")==0)
+    {
+      //strtokIndx = strtok(NULL, "=");
+      //char charvalue[40] {0};
+      //strcpy(charvalue, strtokIndx); // copy it to messageFromPC
+
+      //floatvalue = atof(strtokIndx);     // convert this part to a float
+      strcpy( loadedSettings.server,strtokIndx);
+      Serial.print("set server: ");
+
+      //loadedSettings.lowMilliamps = 500;
+      Serial.println(loadedSettings.server);
+
+      EEPROM.put(1,loadedSettings);
+    }
+    else if(strcmp(command,"userhash")==0)
+    {
+      //strtokIndx = strtok(NULL, "=");
+      //char charvalue[40] {0};
+      //strcpy(charvalue, strtokIndx); // copy it to messageFromPC
+
+      //floatvalue = atof(strtokIndx);     // convert this part to a float
+      strcpy( loadedSettings.userHash,strtokIndx);
+      Serial.print("set userHash: ");
+
+      //loadedSettings.lowMilliamps = 500;
+      Serial.println(loadedSettings.userHash);
+
+      EEPROM.put(1,loadedSettings);
+    }
+    else if(strcmp(command,"cduintid")==0)
+    {
+      //strtokIndx = strtok(NULL, "=");
+      //char charvalue[40] {0};
+      //strcpy(charvalue, strtokIndx); // copy it to messageFromPC
+
+      intvalue = atoi(strtokIndx);     // convert this part to a float
+      //strcpy( loadedSettings.server,strtokIndx);
+      loadedSettings.CDUnitID = intvalue;
+      Serial.print("set CDUnitID: ");
+
+      //loadedSettings.lowMilliamps = 500;
+      Serial.println(loadedSettings.CDUnitID);
+
+      EEPROM.put(1,loadedSettings);
+    }
+    else if(strcmp(command,"ssid")==0)
+    {
+      //strtokIndx = strtok(NULL, "=");
+      //char charvalue[40] {0};
+      //strcpy(charvalue, strtokIndx); // copy it to messageFromPC
+
+      //floatvalue = atof(strtokIndx);     // convert this part to a float
+      strcpy( loadedSettings.ssid,strtokIndx);
+      //Serial.println(st)
+      Serial.print("set SSID: ");
+
+      //loadedSettings.lowMilliamps = 500;
+      Serial.println(loadedSettings.ssid);
+
+      EEPROM.put(1,loadedSettings);
+    }
+    else if(strcmp(command,"pass")==0)
+    {
+      //strtokIndx = strtok(NULL, "=");
+      //char charvalue[40] {0};
+      //strcpy(charvalue, strtokIndx); // copy it to messageFromPC
+
+      //floatvalue = atof(strtokIndx);     // convert this part to a float
+      strcpy( loadedSettings.pass,strtokIndx);
+      Serial.print("set pass: ");
+
+      //loadedSettings.lowMilliamps = 500;
+      Serial.println(loadedSettings.pass);
+
+      EEPROM.put(1,loadedSettings);
+    }
+    else if(strcmp(command,"reset")==0)
+    {
+      //strtokIndx = strtok(NULL, "=");
+      //char charvalue[40] {0};
+      //strcpy(charvalue, strtokIndx); // copy it to messageFromPC
+
+      floatvalue = atoi(strtokIndx);     // convert this part to a float
+      //strcpy( loadedSettings.server,strtokIndx);
+      EEPROM.write(0,0);
+      Serial.println("settings: default(reboot) ");
+
+      //loadedSettings.lowMilliamps = 500;
+      //Serial.println(loadedSettings.server);
+
+      //EEPROM.put(1,loadedSettings);
+    }
+    newData = false;
+
+  }
+
+
+
+}
+//**************************END SERIAL CONFIURATION FUNCTIONS*******************
 void rotaryEncoder()
 {
   int rotaryEncoderDirection = myEnc.read();//encoder_data(); // Check for rotation
@@ -384,6 +761,7 @@ void rotaryEncoder()
   }
 }
 
+#if defined(ETHERNET_ENABLE) || defined(WIRELESS_ENABLE)
 void cycleStatePostWebData()
 {
   bool postData;
@@ -480,6 +858,7 @@ void cycleStateGetWebData()
     }
   }
 }
+#endif
 
 void cycleStateLCD()
 {
@@ -979,14 +1358,14 @@ void getBatteryVoltage(byte j)
 
 byte checkConnection()
 {
-  if (client.connect(server, 80))
+  if (client.connect(loadedSettings.server, 80))
   {
     client.print("GET /check_connection.php?");
 	client.print("UserHash=");
-    client.print(userHash);
+    client.print(loadedSettings.userHash);
     client.println(" HTTP/1.1");
     client.print("Host: ");
-    client.println(server);
+    client.println(loadedSettings.server);
     client.println("Connection: close");
     client.println();
     client.println();
@@ -998,17 +1377,17 @@ byte checkConnection()
 
 byte checkBatteryExists(byte j)
 {
-  if (client.connect(server, 80))
+  if (client.connect(loadedSettings.server, 80))
   {
     client.print("GET /check_battery_barcode.php?");
 	client.print("UserHash=");
-    client.print(userHash);
+    client.print(loadedSettings.userHash);
     client.print("&");
     client.print("BatteryBarcode=");
     client.print(batteryBarcode[j]);
     client.println(" HTTP/1.1");
     client.print("Host: ");
-    client.println(server);
+    client.println(loadedSettings.server);
     client.println("Connection: close");
     client.println();
     client.println();
@@ -1020,17 +1399,17 @@ byte checkBatteryExists(byte j)
 
 float getCutOffVoltage(byte j)
 {
-  if (client.connect(server, 80))
+  if (client.connect(loadedSettings.server, 80))
   {
     client.print("GET /get_cutoff_voltage.php?");
 	client.print("UserHash=");
-    client.print(userHash);
+    client.print(loadedSettings.userHash);
     client.print("&");
     client.print("BatteryBarcode=");
     client.print(batteryBarcode[j]);
     client.println(" HTTP/1.1");
     client.print("Host: ");
-    client.println(server);
+    client.println(loadedSettings.server);
     client.println("Connection: close");
     client.println();
     client.println();
@@ -1042,14 +1421,14 @@ float getCutOffVoltage(byte j)
 
 byte addDischargeRecord(byte j)
 {
-  if (client.connect(server, 80))
+  if (client.connect(loadedSettings.server, 80))
   {
     client.print("GET /battery_discharge_post.php?");
 	client.print("UserHash=");
-    client.print(userHash);
+    client.print(loadedSettings.userHash);
     client.print("&");
 	client.print("CDUnitID=");
-    client.print(CDUnitID);
+    client.print(loadedSettings.CDUnitID);
     client.print("&");
     client.print("BatteryBarcode=");
     client.print(batteryBarcode[j]);
@@ -1073,7 +1452,7 @@ byte addDischargeRecord(byte j)
     client.print(dischargeMinutes[j]);
     client.println(" HTTP/1.1");
     client.print("Host: ");
-    client.println(server);
+    client.println(loadedSettings.server);
     client.println("Connection: close");
     client.println();
     client.println();
