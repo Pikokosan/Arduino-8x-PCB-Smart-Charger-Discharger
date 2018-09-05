@@ -281,25 +281,10 @@ void setup()
     digitalWrite(chargeMosfetPins[i], LOW);
     digitalWrite(dischargeMosfetPins[i], LOW);
   }
-  #if defined(SERIAL_DEBUG)
+
   Serial.begin(115200);
+  //readconfig();
 
-  Serial.println("Started");
-  Serial.print("startup byte= ");
-  Serial.println(EEPROM.read(0));
-  Serial.print("loadedSettings.shuntResistor= ");
-  Serial.println(loadedSettings.shuntResistor);
-  Serial.print("loadedSettings.referenceVoltage= ");
-  Serial.println(loadedSettings.referenceVoltage);
-  Serial.print("loadedSettings.defaultBatteryCutOffVoltage= " );
-  Serial.println(loadedSettings.defaultBatteryCutOffVoltage);
-  Serial.print("loadedSettings.lowMilliamps= ");
-  Serial.println(loadedSettings.lowMilliamps);
-  Serial.print("loadedSettings.ssid= ");
-  Serial.println(loadedSettings.ssid);
-
-
-  #endif
   //Startup Screen
 
   lcd.init();
@@ -460,6 +445,43 @@ void KbdRptParser::OnKeyPressed(uint8_t key)
 };
 #endif
 
+
+
+void readconfig()
+{
+  EEPROM.get(1,loadedSettings);
+  Serial.print("loadedSettings.shuntResistor= ");
+  Serial.println(loadedSettings.shuntResistor,2);
+  Serial.print("loadedSettings.referenceVoltage= ");
+  Serial.println(loadedSettings.referenceVoltage,2);
+  Serial.print("loadedSettings.defaultBatteryCutOffVoltage= " );
+  Serial.println(loadedSettings.defaultBatteryCutOffVoltage,2);
+  Serial.print("loadedSettings.restTimeMinutes= ");
+  Serial.println(loadedSettings.restTimeMinutes);
+  Serial.print("loadedSettings.lowMilliamps= ");
+  Serial.println(loadedSettings.lowMilliamps);
+  Serial.print("loadedSettings.highMilliOhms= ");
+  Serial.println(loadedSettings.highMilliOhms);
+  Serial.print("loadedSettings.offsetMilliOhms= ");
+  Serial.println(loadedSettings.offsetMilliOhms);
+  Serial.print("loadedSettings.chargingTimeout= ");
+  Serial.println(loadedSettings.chargingTimeout);
+  Serial.print("loadedSettings.tempThreshold= ");
+  Serial.println(loadedSettings.tempThreshold);
+  Serial.print("loadedSettings.tempMaxThreshold= ");
+  Serial.println(loadedSettings.tempMaxThreshold);
+  Serial.print("loadedSettings.server= ");
+  Serial.println(loadedSettings.server);
+  Serial.print("loadedSettings.userHash= ");
+  Serial.println(loadedSettings.userHash);
+  Serial.print("loadedSettings.CDUnitID= ");
+  Serial.println(loadedSettings.CDUnitID);
+  Serial.print("loadedSettings.ssid= ");
+  Serial.println(loadedSettings.ssid);
+  Serial.print("loadedSettings.pass= ");
+  Serial.println(loadedSettings.pass);
+
+}
 //************************serial configuration functions*********************
 void recvWithEndMarker() {
  static byte ndx = 0;
@@ -502,8 +524,8 @@ void serialcheck()
   strtokIndx = strtok(receivedChars,"=");      // get the first part - the string
   strcpy(command, strtokIndx); // copy it to messageFromPC
   strtokIndx = strtok(NULL, "="); // this continues where the previous call left off
-  Serial.print("Command= ");
-  Serial.println(command);
+  //Serial.print("Command= ");
+  //Serial.println(command);
   //Serial.println(">");
 
 
@@ -512,10 +534,10 @@ void serialcheck()
       //strtokIndx = strtok(NULL, "="); // this continues where the previous call left off
       intvalue = atoi(strtokIndx);     // convert this part to an integer
       loadedSettings.lowMilliamps = intvalue;
-      Serial.print("set lowMilliamps: ");
+      //Serial.print("set lowMilliamps: ");
 
       //loadedSettings.lowMilliamps = 500;
-      Serial.println(loadedSettings.lowMilliamps,DEC);
+      //Serial.println(loadedSettings.lowMilliamps,DEC);
 
       EEPROM.put(1,loadedSettings);
     }
@@ -525,10 +547,10 @@ void serialcheck()
       //strtokIndx = strtok(NULL, "=");
       floatvalue = atof(strtokIndx);     // convert this part to a float
       loadedSettings.shuntResistor = floatvalue;
-      Serial.print("set shuntResistor: ");
+      //Serial.print("set shuntResistor: ");
 
       //loadedSettings.lowMilliamps = 500;
-      Serial.println(loadedSettings.shuntResistor,2);
+      //Serial.println(loadedSettings.shuntResistor,2);
 
       EEPROM.put(1,loadedSettings);
     }else if(strcmp(command,"refv")==0)
@@ -536,10 +558,10 @@ void serialcheck()
       //strtokIndx = strtok(NULL, "=");
       floatvalue = atof(strtokIndx);     // convert this part to a float
       loadedSettings.referenceVoltage = floatvalue;
-      Serial.print("set referenceVoltage: ");
+      //Serial.print("set referenceVoltage: ");
 
       //loadedSettings.lowMilliamps = 500;
-      Serial.println(loadedSettings.referenceVoltage,2);
+      //Serial.println(loadedSettings.referenceVoltage,2);
 
       EEPROM.put(1,loadedSettings);
     }
@@ -548,10 +570,10 @@ void serialcheck()
       //strtokIndx = strtok(NULL, "=");
       floatvalue = atof(strtokIndx);     // convert this part to a float
       loadedSettings.defaultBatteryCutOffVoltage = floatvalue;
-      Serial.print("set defaultBatteryCutOffVoltage: ");
+      //Serial.print("set defaultBatteryCutOffVoltage: ");
 
       //loadedSettings.lowMilliamps = 500;
-      Serial.println(loadedSettings.defaultBatteryCutOffVoltage,2);
+      //Serial.println(loadedSettings.defaultBatteryCutOffVoltage,2);
 
       EEPROM.put(1,loadedSettings);
     }else if(strcmp(command,"timeout")==0)
@@ -559,10 +581,10 @@ void serialcheck()
       //strtokIndx = strtok(NULL, "=");
       intvalue = atoi(strtokIndx);     // convert this part to a float
       loadedSettings.restTimeMinutes = intvalue;
-      Serial.print("set restTimeMinutes: ");
+      //Serial.print("set restTimeMinutes: ");
 
       //loadedSettings.lowMilliamps = 500;
-      Serial.println(loadedSettings.restTimeMinutes);
+      //Serial.println(loadedSettings.restTimeMinutes);
 
       EEPROM.put(1,loadedSettings);
     }
@@ -571,10 +593,10 @@ void serialcheck()
       //strtokIndx = strtok(NULL, "=");
       intvalue = atoi(strtokIndx);     // convert this part to a float
       loadedSettings.highMilliOhms = intvalue;
-      Serial.print("set highMilliOhms: ");
+      //Serial.print("set highMilliOhms: ");
 
       //loadedSettings.lowMilliamps = 500;
-      Serial.println(loadedSettings.highMilliOhms);
+      //Serial.println(loadedSettings.highMilliOhms);
 
       EEPROM.put(1,loadedSettings);
     }else if(strcmp(command,"ohmoffset")==0)
@@ -582,10 +604,10 @@ void serialcheck()
       //strtokIndx = strtok(NULL, "=");
       intvalue = atoi(strtokIndx);     // convert this part to a float
       loadedSettings.offsetMilliOhms = intvalue;
-      Serial.print("set offsetMilliOhms: ");
+      //Serial.print("set offsetMilliOhms: ");
 
       //loadedSettings.lowMilliamps = 500;
-      Serial.println(loadedSettings.offsetMilliOhms,2);
+      //Serial.println(loadedSettings.offsetMilliOhms,2);
 
       EEPROM.put(1,loadedSettings);
     }
@@ -594,10 +616,10 @@ void serialcheck()
       //strtokIndx = strtok(NULL, "=");
       floatvalue = atof(strtokIndx);     // convert this part to a float
       loadedSettings.chargingTimeout = floatvalue;
-      Serial.print("set chargingTimeout: ");
+      //Serial.print("set chargingTimeout: ");
 
       //loadedSettings.lowMilliamps = 500;
-      Serial.println(loadedSettings.chargingTimeout);
+      //Serial.println(loadedSettings.chargingTimeout);
 
       EEPROM.put(1,loadedSettings);
     }
@@ -606,10 +628,10 @@ void serialcheck()
       //strtokIndx = strtok(NULL, "=");
       intvalue = atoi(strtokIndx);     // convert this part to a float
       loadedSettings.tempThreshold = intvalue;
-      Serial.print("set tempThreshold: ");
+      //Serial.print("set tempThreshold: ");
 
       //loadedSettings.lowMilliamps = 500;
-      Serial.println(loadedSettings.tempThreshold);
+      //Serial.println(loadedSettings.tempThreshold);
 
       EEPROM.put(1,loadedSettings);
     }
@@ -618,10 +640,10 @@ void serialcheck()
       //strtokIndx = strtok(NULL, "=");
       intvalue = atoi(strtokIndx);     // convert this part to a float
       loadedSettings.tempMaxThreshold = intvalue;
-      Serial.print("set tempMaxThreshold: ");
+      //Serial.print("set tempMaxThreshold: ");
 
       //loadedSettings.lowMilliamps = 500;
-      Serial.println(loadedSettings.tempMaxThreshold);
+      //Serial.println(loadedSettings.tempMaxThreshold);
 
       EEPROM.put(1,loadedSettings);
     }
@@ -633,10 +655,10 @@ void serialcheck()
 
       //floatvalue = atof(strtokIndx);     // convert this part to a float
       strcpy( loadedSettings.server,strtokIndx);
-      Serial.print("set server: ");
+      //Serial.print("set server: ");
 
       //loadedSettings.lowMilliamps = 500;
-      Serial.println(loadedSettings.server);
+      //Serial.println(loadedSettings.server);
 
       EEPROM.put(1,loadedSettings);
     }
@@ -648,10 +670,10 @@ void serialcheck()
 
       //floatvalue = atof(strtokIndx);     // convert this part to a float
       strcpy( loadedSettings.userHash,strtokIndx);
-      Serial.print("set userHash: ");
+      //Serial.print("set userHash: ");
 
       //loadedSettings.lowMilliamps = 500;
-      Serial.println(loadedSettings.userHash);
+      //Serial.println(loadedSettings.userHash);
 
       EEPROM.put(1,loadedSettings);
     }
@@ -664,10 +686,10 @@ void serialcheck()
       intvalue = atoi(strtokIndx);     // convert this part to a float
       //strcpy( loadedSettings.server,strtokIndx);
       loadedSettings.CDUnitID = intvalue;
-      Serial.print("set CDUnitID: ");
+      //Serial.print("set CDUnitID: ");
 
       //loadedSettings.lowMilliamps = 500;
-      Serial.println(loadedSettings.CDUnitID);
+      //Serial.println(loadedSettings.CDUnitID);
 
       EEPROM.put(1,loadedSettings);
     }
@@ -680,10 +702,10 @@ void serialcheck()
       //floatvalue = atof(strtokIndx);     // convert this part to a float
       strcpy( loadedSettings.ssid,strtokIndx);
       //Serial.println(st)
-      Serial.print("set SSID: ");
+      //Serial.print("set SSID: ");
 
       //loadedSettings.lowMilliamps = 500;
-      Serial.println(loadedSettings.ssid);
+      //Serial.println(loadedSettings.ssid);
 
       EEPROM.put(1,loadedSettings);
     }
@@ -695,10 +717,10 @@ void serialcheck()
 
       //floatvalue = atof(strtokIndx);     // convert this part to a float
       strcpy( loadedSettings.pass,strtokIndx);
-      Serial.print("set pass: ");
+      //Serial.print("set pass: ");
 
       //loadedSettings.lowMilliamps = 500;
-      Serial.println(loadedSettings.pass);
+      //Serial.println(loadedSettings.pass);
 
       EEPROM.put(1,loadedSettings);
     }
@@ -711,12 +733,17 @@ void serialcheck()
       floatvalue = atoi(strtokIndx);     // convert this part to a float
       //strcpy( loadedSettings.server,strtokIndx);
       EEPROM.write(0,0);
-      Serial.println("settings: default(reboot) ");
+      //Serial.println("settings: default(reboot) ");
 
       //loadedSettings.lowMilliamps = 500;
       //Serial.println(loadedSettings.server);
 
       //EEPROM.put(1,loadedSettings);
+    }
+    else if(strcmp(command,"read")==0)
+    {
+      readconfig();
+      //use this to call the eeprom settings read.
     }
     newData = false;
 

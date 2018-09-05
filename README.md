@@ -47,15 +47,17 @@ This is the Arduino 8x 18650 Smart Charger / Discharger Code
 |cduintid=1| CDUnitID this is the Units ID - this is unique per user - Get this from Charger / Discharger Menu -> View -> Select your Charger / Discharger|
 |ssid=yournetwork| Sets your networks ssid(name)|
 |pass=yournetwork| pass Set your network password|
+|read| This dumps the currently set eeprom values to the serial port.|
 
 
 
 ## Manual USB host system patch
 
-Change  P10 to P8
 
+On line 43 of UsbCore.h in .piolibdeps/USB-Host-Shield-Library-20_ID59/UsbCore.h
+Change  P10 to P8
+```
 //typedef MAX3421e<P10, P9> MAX3421E; // Official Arduinos (UNO, Duemilanove, Mega, 2560, Leonardo, Due etc.), Intel Edison, Intel Galileo 2 or Teensy 2.0 and 3.x - Original
 
 typedef MAX3421e<P8, P9> MAX3421E; // Official Arduinos (UNO, Duemilanove, Mega, 2560, Leonardo, Due etc.), Intel Edison, Intel Galileo 2 or Teensy 2.0 and 3.x
-
-on Line 43 of UsbCore.h in Arduino libraries\USB_Host_Shield_Library_2.0\UsbCore.h
+```
