@@ -1,4 +1,4 @@
-#Arduino-8x-PCB-Smart-Charger-Discharger
+Arduino-8x-PCB-Smart-Charger-Discharger
 ---------------------------------------------------------------------------
 Created by Brett Watt on 20/07/2018
 Copyright 2018 - Under creative commons license 3.0:
@@ -7,26 +7,26 @@ Modified by Pikoko
 This software is furnished "as is", without technical support, and with no
 warranty, express or implied, as to its usefulness for any purpose.
 
-Original creator: Brett Watt
-Email: info@vortexit.co.nz
-Web: www.vortexit.co.nz
+Original creator Brett Watt
+Email info@vortexit.co.nz
+Web www.vortexit.co.nz
 
 This is the Arduino 8x 18650 Smart Charger / Discharger Code
 
 ## Current implementation:
-TP4056
-Rotary Encoder KY-040 Module
-Temp Sensor DS18B20
-Ethernet Module W5500
-ESP-01(hardware Serial1)
-Mini USB Host Shield (Barcode Scanner)
-LCD 2004 20x4 with IIC/I2C/TWI Serial
-Discharge (MilliAmps and MillOhms)
-Serial configuration.
+- TP4056
+- Rotary Encoder KY-040 Module
+- Temp Sensor DS18B20
+- Ethernet Module W5500
+- ESP-01(hardware Serial1)
+- Mini USB Host Shield (Barcode Scanner)
+- LCD 2004 20x4 with IIC/I2C/TWI Serial
+- Discharge (MilliAmps and MillOhms)
+- Serial configuration.
 
 ## Things to fix:
-Add ESP-01(Software Serial5)?
-Fix mini USB host shield (make auto patch)
+- Add ESP-01(Software Serial5)?
+- Fix mini USB host shield (make auto patch)
 
 
 
