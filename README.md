@@ -32,6 +32,7 @@ This is the Arduino 8x 18650 Smart Charger / Discharger Code
 Good commands will respond with "ACK"
 If the command is not supported or incorrectly type a "NAK" will be seen.
 Please allow some time for the command to thru. during testing without internet connectivity the response time is very high.
+
 |Command| Description|
 |-------|------------|
 |reset  |This resets the eeprom settings to default settings. device must be restarted|
