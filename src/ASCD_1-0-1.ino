@@ -450,61 +450,60 @@ void KbdRptParser::OnKeyPressed(uint8_t key)
 void readconfig()
 {
   EEPROM.get(1,loadedSettings);
-  Serial.print("loadedSettings.shuntResistor= ");
+  Serial.print("loadedSettings.shuntResistor=");
   Serial.println(loadedSettings.shuntResistor,2);
-  Serial.print("loadedSettings.referenceVoltage= ");
+  Serial.print("loadedSettings.referenceVoltage=");
   Serial.println(loadedSettings.referenceVoltage,2);
-  Serial.print("loadedSettings.defaultBatteryCutOffVoltage= " );
+  Serial.print("loadedSettings.defaultBatteryCutOffVoltage=" );
   Serial.println(loadedSettings.defaultBatteryCutOffVoltage,2);
-  Serial.print("loadedSettings.restTimeMinutes= ");
+  Serial.print("loadedSettings.restTimeMinutes=");
   Serial.println(loadedSettings.restTimeMinutes);
-  Serial.print("loadedSettings.lowMilliamps= ");
+  Serial.print("loadedSettings.lowMilliamps=");
   Serial.println(loadedSettings.lowMilliamps);
-  Serial.print("loadedSettings.highMilliOhms= ");
+  Serial.print("loadedSettings.highMilliOhms=");
   Serial.println(loadedSettings.highMilliOhms);
-  Serial.print("loadedSettings.offsetMilliOhms= ");
+  Serial.print("loadedSettings.offsetMilliOhms=");
   Serial.println(loadedSettings.offsetMilliOhms);
-  Serial.print("loadedSettings.chargingTimeout= ");
+  Serial.print("loadedSettings.chargingTimeout=");
   Serial.println(loadedSettings.chargingTimeout);
-  Serial.print("loadedSettings.tempThreshold= ");
+  Serial.print("loadedSettings.tempThreshold=");
   Serial.println(loadedSettings.tempThreshold);
-  Serial.print("loadedSettings.tempMaxThreshold= ");
+  Serial.print("loadedSettings.tempMaxThreshold=");
   Serial.println(loadedSettings.tempMaxThreshold);
-  Serial.print("loadedSettings.server= ");
+  Serial.print("loadedSettings.server=");
   Serial.println(loadedSettings.server);
-  Serial.print("loadedSettings.userHash= ");
+  Serial.print("loadedSettings.userHash=");
   Serial.println(loadedSettings.userHash);
-  Serial.print("loadedSettings.CDUnitID= ");
+  Serial.print("loadedSettings.CDUnitID=");
   Serial.println(loadedSettings.CDUnitID);
-  Serial.print("loadedSettings.ssid= ");
+  Serial.print("loadedSettings.ssid=");
   Serial.println(loadedSettings.ssid);
-  Serial.print("loadedSettings.pass= ");
+  Serial.print("loadedSettings.pass=");
   Serial.println(loadedSettings.pass);
 
 }
 //************************serial configuration functions*********************
 void recvWithEndMarker() {
- static byte ndx = 0;
- char endMarker = '\n';
- char rc;
 
- // if (Serial.available() > 0) {
-           while (Serial.available() > 0 && newData == false) {
- rc = Serial.read();
+  static byte ndx = 0;
+  char endMarker = '\n';
+  char rc;
 
- if (rc != endMarker) {
- receivedChars[ndx] = rc;
- ndx++;
- if (ndx >= numChars) {
- ndx = numChars - 1;
- }
- }
- else {
- receivedChars[ndx] = '\0'; // terminate the string
- ndx = 0;
- newData = true;
- }
- }
+  while (Serial.available() > 0 && newData == false) {
+    rc = Serial.read();
+
+    if (rc != endMarker) {
+      receivedChars[ndx] = rc;
+      ndx++;
+      if (ndx >= numChars) ndx = numChars - 1;
+    }
+    else
+    {
+      receivedChars[ndx] = '\0'; // terminate the string
+      ndx = 0;
+      newData = true;
+    }
+  }
 }
 
 
@@ -514,6 +513,7 @@ void configResponce(uint8_t type)
   if(type==ACK) Serial.println("ACK");
   if(type!=ACK && type!=NAK) Serial.println("ERR");
 }
+
 void serialcheck()
 {
   //Serial.println("serialcheck called");
@@ -645,8 +645,6 @@ void serialcheck()
     {
       configResponce(ACK);
       readconfig();
-
-
     }
     else
     {
