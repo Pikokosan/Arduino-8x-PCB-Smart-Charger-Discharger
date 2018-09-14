@@ -1,13 +1,13 @@
 # Functions to add
 
-- [ ]add setup function for [ds12b20's]{#1}
-- [ ]Possible change current measurement method. see image [bellow]{#2}
+- [ ][add setup function for ds12b20's](#11-ds12b20)
+- [ ][Possible change current measurement method. see image bellow](#12-discharge-mosfet)
 
 
 
 
 
-## ds12b20 discovery and setup{#1}
+## 1.1 ds12b20
 
 Function should run at the begining if the eeprom's first setup bit is not set.
 steps:
@@ -26,9 +26,9 @@ steps:
 
 
 
-## Discharge mosfet idea{#2}
+## 1.2 Discharge mosfet
 
 The circuit would be set as a pwm at 60 kHz more info to follow.
 This is based on the way the zanflare c4 works.
 
-![dischage mosfet idea](images/new discharge.png)
+![dischage mosfet idea](images/discharge.png)
