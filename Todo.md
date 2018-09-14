@@ -1,7 +1,7 @@
 # Functions to add
 
-- [ ][add setup function for ds12b20's](#11-ds12b20)
-- [ ][Possible change current measurement method. see image bellow](#12-discharge-mosfet)
+- add setup function for [ds12b20's](#11-ds12b20)
+- Possible change current measurement method. [see bellow](#12-discharge-mosfet)
 
 
 
